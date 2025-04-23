@@ -93,4 +93,4 @@ top_3_str=[str(movie) for movie in top_3]
 print(f'Trzy filmy z największą liczbą wyświetleń to {top_3_str}.')
 search("Avatar")
 data=datetime.date.today()
-print(f'Najpopularniejsze filmy i seriale dnia {data.strftime("%d.%m.%Y")} to: {top_3}')
+print(f'Najpopularniejsze filmy i seriale dnia {data.strftime("%d.%m.%Y")} to: {top_3_str}')
