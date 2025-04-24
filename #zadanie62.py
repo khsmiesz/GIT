@@ -1,65 +1,198 @@
-# `ex_01_conection_to_db.py`
+#Zadanie 6.2
+#sql CREATE
 
 import sqlite3
 from sqlite3 import Error
 
 def create_connection(db_file):
-   """ create a database connection to a SQLite database """
+    conn=None
+    try:
+        conn=sqlite3.connect(db_file)
+        print (f'Connected to {db_file}, sqlite version: {sqlite3.version}')
+    except sqlite3.Error as e:
+        print(e)
+    return conn
+
+def execute_sql(conn, sql):
+    try:
+        c=conn.cursor()
+        c.execute(sql)
+    except Error as e:
+        print (e)
+
+def add_wallet(conn, wallet):
+    sql = """INSERT INTO wallets(name, saldo)
+    VALUES(?, ?)"""
+    cur=conn.cursor()
+    cur.execute(sql, wallet)
+    conn.commit()
+    return wallet[0]
+    
+def add_transactions(conn, transaction):
+    sql= """INSERT INTO transactions(user_name, wallet_name, type_of_transaction, amount, date)
+    VALUES(?, ?, ?, ?, ?)"""
+    cur=conn.cursor()
+    cur.execute(sql, transaction)
+    conn.commit()
+    return transaction[0]
+   
+
+if __name__== '__main__':
+    db_file = "myfirstdatabase.db"
+    conn=create_connection(db_file)
+
+    create_wallets_sql = """
+    --wallets table 
+    CREATE TABLE IF NOT EXISTS wallets (
+    name text PRIMARY KEY,
+    saldo float
+    );"""
+    create_transactions_sql = """
+    --transactions table
+    CREATE TABLE IF NOT EXISTS transactions (
+    user_name text PRIMARY KEY,
+    wallet_name text NOT NULL,
+    type_of_transaction VARCHAR(10) NOT NULL,
+    amount float,
+    date text,
+    FOREIGN KEY (wallet_name) REFERENCES wallets (name));"""
+
+    if conn is not None:
+        execute_sql(conn, create_wallets_sql)
+        execute_sql(conn, create_transactions_sql)
+        wallet=("Cash", "22,50")
+        transaction=("Kasia", "Cash", "income", "1000", "2025-02-22 00:00:00")
+        add_wallet(conn, wallet)
+        add_transactions(conn, transaction)
+        conn.commit()
+        wallet1=("Account", "8000")
+        wallet2=("Savings", "0")
+        transaction1=("Amanda", "Account", "income", "22", "2025-02-22 00:00:00")
+        transaction2=("Czesiek", "Savings", "income", "800", "2025-02-22 00:00:00")
+        add_transactions(conn, transaction1)
+        add_wallet(conn, wallet1)
+        add_wallet(conn, wallet2)
+        add_transactions(conn, transaction2)
+        conn.commit()
+        conn.close()
+
+    
+#SQL READ
+
+import sqlite3
+from sqlite3 import Error
+
+def create_connection(db_file):
+    conn=None
+    try:
+        conn=sqlite3.connect(db_file)
+        print (f'Connected to {db_file}, sqlite version: {sqlite3.version}')
+    except sqlite3.Error as e:
+        print(e)
+    return conn
+
+conn=create_connection("myfirstdatabase.db")
+cur=conn.cursor()
+cur.execute("SELECT * FROM transactions")
+rows=cur.fetchall()
+print(rows)
+row=cur.fetchone()
+print(row)
+
+def select_task_by_status(conn, user_name):
+   cur = conn.cursor()
+   cur.execute("SELECT * FROM transactions WHERE user_name=?", (user_name,))
+   rows = cur.fetchall()
+   return rows
+
+select_task_by_status(conn, "Amanda")
+
+def select_all(conn, table):
+    cur=conn.cursor()
+    cur.execute(f'SELECT * FROM {table}')
+    rows=cur.fetchall()
+    return rows
+
+select_all(conn, "wallets")
+
+def select_where(conn, table, **query):
+    cur=conn.cursor()
+    qs=[]
+    values=()
+    for k, v in query.items():
+        qs.append(f'{k}=?')
+        values+=(v,)
+    q="AND".join(qs)
+    cur.execute(f'SELECT * FROM {table} WHERE {q}', values)
+    rows=cur.fetchall()
+    return rows
+
+select_where(conn, "transactions", user_name="Kasia") 
+
+
+#sql UPDATE
+
+import sqlite3
+from sqlite3 import Error
+
+def create_connection(db_file):
    conn = None
    try:
        conn = sqlite3.connect(db_file)
-       print(f"Connected to {db_file}, sqlite version: {sqlite3.version}")
    except Error as e:
        print(e)
-   finally:
-       if conn:
-           conn.close()
 
-def execute_sql(conn, sql):
-   """ Execute sql
-   :param conn: Connection object
-   :param sql: a SQL script
-   :return:
-   """
+   return conn
+
+def update(conn, table, name, **kwargs):
+   parameters = [f"{k} = ?" for k in kwargs]
+   parameters = ", ".join(parameters)
+   values = tuple(v for v in kwargs.values())
+   values += (name, )
+
+   sql = f''' UPDATE {table}
+             SET {parameters}
+             WHERE name = ?'''
    try:
-       c = conn.cursor()
-       c.execute(sql)
+       cur = conn.cursor()
+       cur.execute(sql, values)
+       conn.commit()
+       print("OK")
+   except sqlite3.OperationalError as e:
+       print(e)
+
+if __name__ == "__main__":
+   conn = create_connection("myfirstdatabase.db")
+   update(conn, "wallets", "Gotówka", saldo="999")
+   conn.close()
+
+   #sql DELETE
+
+import sqlite3
+from sqlite3 import Error
+
+def create_connection(db_file):
+   conn = None
+   try:
+       conn = sqlite3.connect(db_file)
    except Error as e:
        print(e)
-if __name__ == '__main__':
-    create_projects_sql = """
-    -- projects table
-    CREATE TABLE IF NOT EXISTS projects (
-        id integer PRIMARY KEY,
-        nazwa text NOT NULL,
-        start_date text,
-        end_date text
-    );
-    """
-    create_tasks_sql = """
-    -- zadanie table
-    CREATE TABLE IF NOT EXISTS tasks (
-       id integer PRIMARY KEY,
-       project_id integer NOT NULL,
-       nazwa VARCHAR(250) NOT NULL,
-       opis TEXT,
-       status VARCHAR(15) NOT NULL,
-       start_date text NOT NULL,
-       end_date text NOT NULL,
-       FOREIGN KEY (project_id) REFERENCES projects (id)
-    );
-   """
 
-    db_file = "database.db"
+   return conn
 
-    conn = create_connection(db_file)
-    if conn is not None:
-        execute_sql(conn, create_projects_sql)
-        execute_sql(conn, create_tasks_sql)
-        conn.close()
+def delete(conn, table, **kwargs):
+   qs = []
+   values = tuple()
+   for k, v in kwargs.items():
+       qs.append(f"{k}=?")
+       values += (v,)
+   q = " AND ".join(qs)
 
-INSERT INTO projects(id, nazwa, start_date, end_date)
-   VALUES (1,
-           "Zrób zadania",
-           "2020-05-08 00:00:00",
-           "2020-05-10 00:00:00");
+   sql = f'DELETE FROM {table} WHERE {q}'
+   cur = conn.cursor()
+   cur.execute(sql, values)
+   conn.commit()
+   print("Deleted")
+
+conn=create_connection("myfirstdatabase.db")
+delete(conn, "wallets", name="Gotówka")

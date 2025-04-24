@@ -1,3 +1,6 @@
+#Zadanie 6.2
+#sql CREATE
+
 import sqlite3
 from sqlite3 import Error
 
@@ -57,12 +60,21 @@ if __name__== '__main__':
     if conn is not None:
         execute_sql(conn, create_wallets_sql)
         execute_sql(conn, create_transactions_sql)
-        wallet=("Gotówka", "22,50")
+        wallet=("Cash", "22,50")
+        transaction=("Kasia", "Cash", "income", "1000", "2025-02-22 00:00:00")
         add_wallet(conn, wallet)
-        transaction=("Kasia", "Gotówka", "income", "1000", "2025-02-22 00:00:00")
         add_transactions(conn, transaction)
         conn.commit()
+        wallet1=("Account", "8000")
+        wallet2=("Savings", "0")
+        transaction1=("Amanda", "Account", "income", "22", "2025-02-22 00:00:00")
+        transaction2=("Czesiek", "Savings", "income", "800", "2025-02-22 00:00:00")
+        add_transactions(conn, transaction1)
+        add_wallet(conn, wallet1)
+        add_wallet(conn, wallet2)
+        add_transactions(conn, transaction2)
+        conn.commit()
         conn.close()
-    
 
+    
 
