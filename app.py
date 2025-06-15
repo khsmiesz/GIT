@@ -119,18 +119,32 @@ def tab2_barh_prod_subcat(chosen_cat):
     return fig
 
 ## tab3 callbacks
-@app.callback(Output('weekdays-sales','figure'),
-            [Input('prod_dropdown','value')])
-def sale_source_by_day(chosen_cat):
-    df.merged['day_of_week'] = pd.to_datetime(df.merged['tran_date']).dt.day_name(locale='pl_PL')
-    order=['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    df.merged['day_of_week'] = pd.Categorical(df.merged['day_of_week'], categories=order, ordered=True)
+@app.callback(Output('customer_age','figure'),
+              [Input('tabs','value')])
+def tab3_customer_age(tab_value):
+    df.merged['DOB'] = pd.to_datetime(df.merged['DOB'], errors='coerce')
+    df.merged = df.merged[df.merged['DOB'].notna()]
+    df.merged['age'] = ((pd.to_datetime('today') - df.merged['DOB']).dt.days // 365)
 
-    grouped = df.groupby(['day_of_week', 'Store_type'])['total_amt'].sum().reset_index()
+    bins = [0, 29, 44, 59, 120]
+    labels = ['18-29', '30-44', '45-59', '60+']
+    df.merged['age_group'] = pd.cut(df.merged['age'], bins=bins, labels=labels, right=True)
 
-    fig = px.line(grouped, x='day_of_week', y='total_amt', color='Store_type',
-                  title='Sprzedaż wg dni tygodnia i kanału sprzedaży',
-                  markers=True)
+    grouped = df.merged[df.merged['total_amt'] > 0].groupby(['age_group', 'Store_type'])['total_amt'].sum().unstack().fillna(0).round(2)
+
+    print("Groupby shape:", grouped.shape)  # DEBUG
+
+    traces = []
+    for col in grouped.columns:
+        traces.append(go.Bar(name=col, x=grouped.index.astype(str), y=grouped[col]))
+
+    fig = go.Figure(data=traces)
+    fig.update_layout(
+        barmode='group',
+        title='Udział grup wiekowych w sprzedaży wg kanału',
+        xaxis_title='Grupa wiekowa',
+        yaxis_title='Wartość sprzedaży'
+    )
     return fig
 
 if __name__ == '__main__':
